@@ -49,6 +49,7 @@ def test_components_markdown_on_the_example(capsys):
     assert "ICC(2,1)" in out
     assert "always solved 25.0 %, sometimes 62.5 %, never 12.5 %" in out
     assert "beta-binomial fit" in out
+    assert "under-cover on 0/1 scores" in out
 
 
 def test_components_json_matches_the_library(capsys):
@@ -96,6 +97,7 @@ def test_real_valued_scores_skip_the_binary_parts(tmp_path, capsys):
     code, out, _ = run_cli(capsys, "components", path)
     assert code == 0
     assert "beta-binomial" not in out
+    assert "under-cover" not in out
     assert "items whose runs disagree: 100.0 %" in out
 
 

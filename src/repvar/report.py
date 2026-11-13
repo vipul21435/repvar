@@ -84,6 +84,7 @@ class Analysis:
     shares: SolveShares
     betabinomial: BetaBinomialFit | None
     intervals: dict[str, Interval] | None
+    binary: bool = False
 
     @property
     def runs(self) -> int:
@@ -94,6 +95,7 @@ class Analysis:
         out: dict[str, object] = comp.to_dict()
         out["se_one_run"] = mean_se(comp, comp.n_items, 1).to_dict()
         out["se_observed"] = mean_se(comp, comp.n_items, self.runs).to_dict()
+        out["binary"] = self.binary
         out["icc"] = self.icc.to_dict()
         out["reliability_one_run"] = reliability(comp, 1)
         out["reliability_observed_runs"] = reliability(comp, self.runs)
@@ -127,7 +129,9 @@ def analyse(
         intervals = bootstrap(
             scores, design=comp.design, resample=resample, n_boot=n_boot, level=level, seed=seed
         )
-    return Analysis(comp, icc(comp, level), solve_shares(scores), fit, intervals)
+    return Analysis(
+        comp, icc(comp, level), solve_shares(scores), fit, intervals, binary=scores.is_binary
+    )
 
 
 def components_markdown(name: str, result: Analysis) -> str:
@@ -157,9 +161,16 @@ def components_markdown(name: str, result: Analysis) -> str:
         f"- intraclass correlation {result.icc.kind}: {fmt(result.icc.value)} "
         f"({level} interval {fmt(result.icc.low)} to {fmt(result.icc.high)}; "
         f"{result.icc.method})",
-        f"- reliability of an item's score: {fmt(reliability(comp, 1))} from 1 run, "
-        f"{fmt(reliability(comp, k))} from the mean of {k} runs",
     ]
+    if result.binary and not math.isnan(result.icc.low):
+        lines.append(
+            "  (this F interval assumes normal effects and can under-cover on 0/1 scores: "
+            "prefer the --bootstrap interval)"
+        )
+    lines.append(
+        f"- reliability of an item's score: {fmt(reliability(comp, 1))} from 1 run, "
+        f"{fmt(reliability(comp, k))} from the mean of {k} runs"
+    )
     sh = result.shares
     if sh.n_items and math.isnan(sh.always):
         lines.append(
@@ -248,8 +259,9 @@ def design_markdown(
             f"## {name}",
             "",
             design_line(comp),
-            f"variance: item {fmt(comp.item, 5)}, run {fmt(comp.run, 5)}, "
-            f"residual {fmt(comp.residual, 5)}",
+            f"variance: item {fmt(comp.item, 5)}, "
+            + (f"run {fmt(comp.run, 5)}, " if comp.design == CROSSED else "")
+            + f"residual {fmt(comp.residual, 5)}",
             "",
             f"budget: {fmt(budget, 0)} item-runs",
             "",
