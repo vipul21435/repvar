@@ -231,8 +231,21 @@ class Scores:
 
 def _rows(path: Path, fmt: str | None) -> Iterable[Mapping[str, object]]:
     kind = fmt or path.suffix.lower().lstrip(".")
+    if kind == "json":
+        # A .json file may hold one array of row objects instead of one object per line.
+        text = path.read_text(encoding="utf-8-sig").strip()
+        if text.startswith("["):
+            try:
+                rows = json.loads(text)
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"{path.name}: not valid JSON") from exc
+            for number, row in enumerate(rows, start=1):
+                if not isinstance(row, dict):
+                    raise ValueError(f"{path.name} row {number}: expected a JSON object")
+                yield row
+            return
     if kind in {"jsonl", "ndjson", "json"}:
-        with path.open(encoding="utf-8") as handle:
+        with path.open(encoding="utf-8-sig") as handle:
             for number, line in enumerate(handle, start=1):
                 line = line.strip()
                 if not line:
@@ -245,7 +258,7 @@ def _rows(path: Path, fmt: str | None) -> Iterable[Mapping[str, object]]:
                     raise ValueError(f"{path.name} line {number}: expected a JSON object")
                 yield row
     elif kind in {"csv", "tsv"}:
-        with path.open(encoding="utf-8", newline="") as handle:
+        with path.open(encoding="utf-8-sig", newline="") as handle:
             yield from csv.DictReader(handle, delimiter="\t" if kind == "tsv" else ",")
     else:
         raise ValueError(f"unknown format {kind!r}: use a .jsonl, .csv or .tsv file")

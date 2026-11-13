@@ -136,3 +136,21 @@ def test_first_runs_gives_a_balanced_subset():
         scores.first_runs(5)
     with pytest.raises(ValueError):
         scores.first_runs(0)
+
+
+def test_json_array_and_byte_order_mark(tmp_path):
+    array = tmp_path / "runs.json"
+    array.write_text(json.dumps([{"item": "a", "score": 1}, {"item": "a", "score": 0}]))
+    assert read_long(array)[ALL].n_obs == 2
+    lines = tmp_path / "lines.json"
+    lines.write_text('{"item": "a", "score": 1}\n{"item": "b", "score": 0}\n')
+    assert read_long(lines)[ALL].n_items == 2
+    array.write_text("[1, 2]")
+    with pytest.raises(ValueError, match="row 1: expected a JSON object"):
+        read_long(array)
+    array.write_text("[{")
+    with pytest.raises(ValueError, match="not valid JSON"):
+        read_long(array)
+    bom = tmp_path / "bom.csv"
+    bom.write_bytes(b"\xef\xbb\xbfitem,score\na,1\na,0\n")
+    assert read_long(bom)[ALL].n_obs == 2
