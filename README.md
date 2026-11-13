@@ -132,7 +132,8 @@ balanced. Crossed: on a complete table, `item = (MS_item - MS_res) / k`, `run = 
 `residual = MS_res`. With missing cells the same idea is applied to the cells that are present: the
 uncorrected sums of squares of the item totals, the run totals and the single scores are set equal to their
 expectations under the model, which gives three linear equations in the three variances. Negative estimates
-are reported and then set to zero. This is the variance-components view of generalizability theory
+are reported and then set to zero. The reported mean score is the mean of the per-item means, so every item
+counts once whatever its number of runs. This is the variance-components view of generalizability theory
 ([Cronbach and others 1972](https://openlibrary.org/books/OL5709045M);
 [Shavelson and Webb 1991](https://openlibrary.org/books/OL1543093M);
 [Brennan 2001](https://doi.org/10.1007/978-1-4757-3456-0)).
@@ -200,15 +201,15 @@ experiments and gives formulas for analysing evaluation data, comparing two mode
 [Madaan and others 2024](https://arxiv.org/abs/2406.10229) (Lovish Madaan, Aaditya K. Singh, Rylan Schaeffer,
 Andrew Poulton, Sanmi Koyejo, Pontus Stenetorp, Sharan Narang, Dieuwke Hupkes) define and measure variance
 metrics for benchmarks, seed variance among them; [Reimers and Gurevych 2017](https://arxiv.org/abs/1707.09861)
-show that a single score is not enough to compare non-deterministic methods and argue for comparing score
-distributions.
+argue that a single score is not enough to compare non-deterministic methods and propose comparing score
+distributions over several runs.
 
 **Checks.** The tests compare the ANOVA components with hand-worked tables and with restricted maximum
 likelihood fits from [statsmodels](https://www.statsmodels.org/stable/mixed_linear.html) mixed models, the
 beta-binomial likelihood and fit with
 [scipy.stats.betabinom](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.betabinom.html),
 recover planted components from simulated data, and check interval coverage by seeded simulation.
-The suite has 82 tests with 99 % line coverage (`uv run --extra dev pytest -q --cov=repvar`) and takes
+The suite has 84 tests with 99 % line coverage (`uv run --extra dev pytest -q --cov=repvar`) and takes
 about 30 seconds, measured on a loaded laptop.
 
 Interval coverage on simulated 0/1 data (500 items, 5 runs, mean 0.1, intraclass correlation 0.5; 400 data
