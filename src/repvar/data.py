@@ -48,7 +48,7 @@ class Scores:
     ``item_index[m]`` is the position in ``item_ids`` of the item that observation ``m``
     belongs to, ``run_labels[m]`` its run label and ``values[m]`` its score.
     ``has_run_labels`` is False when the input had no run column; the labels are then
-    counters within each item and carry no meaning across items.
+    counters within each item (or absent) and carry no meaning across items.
     """
 
     item_ids: tuple[str, ...]
@@ -107,16 +107,33 @@ class Scores:
         )
 
     @classmethod
-    def from_matrix(cls, matrix: object, system: str | None = None) -> Scores:
-        """Build from an items-by-runs array; NaN marks a missing cell. Columns are runs."""
+    def from_matrix(
+        cls, matrix: object, system: str | None = None, labelled: bool = True
+    ) -> Scores:
+        """Build from an items-by-runs array; NaN marks a missing cell.
+
+        Columns are runs, labelled by their position. ``labelled=False`` says the columns
+        carry no meaning across items (runs independent within items). Rows and columns
+        without any score are dropped.
+        """
         arr = np.asarray(matrix, dtype=float)
         if arr.ndim != 2:
             raise ValueError("matrix must be two-dimensional (items by runs)")
+        present = ~np.isnan(arr)
+        arr = arr[present.any(axis=1)][:, present.any(axis=0)]
         rows, cols = np.nonzero(~np.isnan(arr))
-        return cls.from_records(
-            ((int(i), int(j), arr[i, j]) for i, j in zip(rows, cols, strict=True)),
+        if rows.size == 0:
+            raise ValueError("no observations")
+        out = cls(
+            item_ids=tuple(str(i) for i in range(arr.shape[0])),
+            item_index=rows.astype(np.int64),
+            run_labels=tuple(str(c) for c in cols.tolist()) if labelled else (),
+            values=arr[rows, cols],
             system=system,
+            has_run_labels=labelled,
         )
+        out._cache["matrix"] = (arr, tuple(str(c) for c in range(arr.shape[1])))
+        return out
 
     # -- summaries ---------------------------------------------------------------
 
@@ -169,6 +186,10 @@ class Scores:
 
     def matrix(self) -> tuple[np.ndarray, tuple[str, ...]]:
         """Items-by-runs array (NaN for missing cells) and the run label of each column."""
+        if "matrix" in self._cache:
+            return self._cache["matrix"]
+        if not self.has_run_labels:
+            raise ValueError("these scores have no run labels to cross with the items")
         runs: dict[str, int] = {}
         cols = np.asarray([runs.setdefault(r, len(runs)) for r in self.run_labels])
         if np.any(np.bincount(self.item_index * len(runs) + cols) > 1):

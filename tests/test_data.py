@@ -33,15 +33,30 @@ def test_scores_summaries():
 
 
 def test_matrix_round_trip_with_missing_cells():
-    table = np.array([[1.0, np.nan, 3.0], [4.0, 5.0, np.nan]])
+    table = np.array([[1.0, np.nan, 3.0], [4.0, 5.0, np.nan], [np.nan, np.nan, np.nan]])
     scores = Scores.from_matrix(table)
+    assert scores.n_items == 2  # the empty row is dropped
     back, runs = scores.matrix()
-    assert runs == ("0", "2", "1")
-    order = [runs.index(str(j)) for j in range(3)]
-    np.testing.assert_array_equal(np.isnan(back[:, order]), np.isnan(table))
-    np.testing.assert_allclose(back[:, order][~np.isnan(table)], table[~np.isnan(table)])
+    assert runs == ("0", "1", "2")
+    np.testing.assert_array_equal(np.isnan(back), np.isnan(table[:2]))
+    np.testing.assert_allclose(back[~np.isnan(back)], table[~np.isnan(table)])
+    assert scores.run_labels == ("0", "2", "0", "1")
     with pytest.raises(ValueError, match="two-dimensional"):
         Scores.from_matrix([1.0, 2.0])
+    with pytest.raises(ValueError, match="no observations"):
+        Scores.from_matrix([[np.nan]])
+
+
+def test_matrix_from_labelled_records():
+    scores = Scores.from_records([("a", "s2", 1), ("a", "s1", 0), ("b", "s1", 0.5)])
+    table, runs = scores.matrix()
+    assert runs == ("s2", "s1")
+    assert table[0].tolist() == [1.0, 0.0]
+    assert np.isnan(table[1, 0]) and table[1, 1] == 0.5
+    with pytest.raises(ValueError, match="no run labels"):
+        Scores.from_lists([[1, 0], [1, 1]]).matrix()
+    unlabelled = Scores.from_matrix([[1, 0], [1, 1]], labelled=False)
+    assert not unlabelled.has_run_labels and unlabelled.run_labels == ()
 
 
 def test_matrix_rejects_duplicate_cells():
