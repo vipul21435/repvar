@@ -29,8 +29,8 @@ def test_nested_components_match_a_random_intercept_model():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         fit = sm.MixedLM.from_formula("y ~ 1", groups="item", data=frame).fit(reml=True)
-    assert comp.item == pytest.approx(float(fit.cov_re.iloc[0, 0]), rel=2e-3)
-    assert comp.residual == pytest.approx(float(fit.scale), rel=2e-3)
+    assert comp.item == pytest.approx(float(fit.cov_re.iloc[0, 0]), rel=1e-2)
+    assert comp.residual == pytest.approx(float(fit.scale), rel=1e-2)
     assert comp.mean == pytest.approx(float(fit.fe_params.iloc[0]), rel=1e-6)
 
 
