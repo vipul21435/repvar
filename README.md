@@ -209,7 +209,7 @@ likelihood fits from [statsmodels](https://www.statsmodels.org/stable/mixed_line
 beta-binomial likelihood and fit with
 [scipy.stats.betabinom](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.betabinom.html),
 recover planted components from simulated data, and check interval coverage by seeded simulation.
-The suite has 84 tests with 99 % line coverage (`uv run --extra dev pytest -q --cov=repvar`) and takes
+The suite has 85 tests with 99 % line coverage (`uv run --extra dev pytest -q --cov=repvar`) and takes
 about 30 seconds, measured on a loaded laptop.
 
 Interval coverage on simulated 0/1 data (500 items, 5 runs, mean 0.1, intraclass correlation 0.5; 400 data
