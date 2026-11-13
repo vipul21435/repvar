@@ -114,7 +114,8 @@ class Scores:
             raise ValueError("matrix must be two-dimensional (items by runs)")
         rows, cols = np.nonzero(~np.isnan(arr))
         return cls.from_records(
-            ((int(i), int(j), arr[i, j]) for i, j in zip(rows, cols)), system=system
+            ((int(i), int(j), arr[i, j]) for i, j in zip(rows, cols, strict=True)),
+            system=system,
         )
 
     # -- summaries ---------------------------------------------------------------
@@ -196,7 +197,7 @@ def _rows(path: Path, fmt: str | None) -> Iterable[Mapping[str, object]]:
         with path.open(encoding="utf-8", newline="") as handle:
             yield from csv.DictReader(handle, delimiter="\t" if kind == "tsv" else ",")
     else:
-        raise ValueError(f"unknown format {kind!r}: use a .jsonl, .csv or .tsv file, or --input-format")
+        raise ValueError(f"unknown format {kind!r}: use a .jsonl, .csv or .tsv file")
 
 
 def read_long(
