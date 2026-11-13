@@ -31,6 +31,13 @@ def pct(value: float | None, digits: int = 1) -> str:
     return f"{100.0 * value:.{digits}f} %"
 
 
+def p_text(value: float) -> str:
+    """``p 0.0123``, or ``p < 1e-300`` when the value underflows to zero."""
+    if math.isnan(value):
+        return "p n/a"
+    return "p < 1e-300" if value < 1e-300 else f"p {value:.3g}"
+
+
 def table(header: Sequence[str], rows: Sequence[Sequence[str]]) -> str:
     lines = ["| " + " | ".join(header) + " |", "|" + "|".join(" --- " for _ in header) + "|"]
     lines += ["| " + " | ".join(row) + " |" for row in rows]
@@ -193,7 +200,7 @@ def betabinomial_markdown(fit: BetaBinomialFit) -> str:
         f"beta-binomial fit: mean {fmt(fit.mean)}, rho {fmt(fit.rho)} "
         f"(alpha {fmt(fit.alpha, 3)}, beta {fmt(fit.beta, 3)})",
         f"- log-likelihood {fmt(fit.loglik, 2)} against {fmt(fit.loglik_binomial, 2)} for one "
-        f"shared pass probability (likelihood ratio {fmt(fit.lr_stat, 2)}, p {fit.p_value:.3g})",
+        f"shared pass probability (likelihood ratio {fmt(fit.lr_stat, 2)}, {p_text(fit.p_value)})",
         f"- item variance {fmt(fit.item_variance, 5)}, rerun variance {fmt(fit.rerun_variance, 5)}",
         f"- expected share of items solved sometimes: {expected}",
     ]
@@ -272,7 +279,7 @@ def compare_markdown(
         f"{fmt(cmp.runs_b, 2)}",
         f"mean scores: {fmt(cmp.mean_a)} and {fmt(cmp.mean_b)}",
         f"difference: {fmt(cmp.difference)} (standard error {fmt(cmp.se)}, {level} interval "
-        f"{fmt(cmp.low)} to {fmt(cmp.high)}, z {fmt(cmp.z, 2)}, p {cmp.p_value:.3g})",
+        f"{fmt(cmp.low)} to {fmt(cmp.high)}, z {fmt(cmp.z, 2)}, {p_text(cmp.p_value)})",
         "",
         table(
             ["standard error of the difference", "value"],

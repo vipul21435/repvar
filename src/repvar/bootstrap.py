@@ -31,17 +31,20 @@ def point_estimates(scores: Scores, design: str = "auto") -> dict[str, float]:
     """The quantities that :func:`bootstrap` puts intervals on by default."""
     comp = variance_components(scores, design)
     k = max(1, round(comp.runs_per_item))
-    return {
-        "mean": comp.mean,
-        "item": comp.item,
-        "run": comp.run,
-        "residual": comp.residual,
-        "icc": icc_value(comp),
-        "reliability_one_run": reliability(comp, 1),
-        "se_one_run": mean_se(comp, comp.n_items, 1).se,
-        "se_observed": mean_se(comp, comp.n_items, k).se,
-        "sometimes": solve_shares(scores).sometimes,
-    }
+    out = {"mean": comp.mean, "item": comp.item}
+    if comp.design == CROSSED:
+        out["run"] = comp.run
+    out.update(
+        {
+            "residual": comp.residual,
+            "icc": icc_value(comp),
+            "reliability_one_run": reliability(comp, 1),
+            "se_one_run": mean_se(comp, comp.n_items, 1).se,
+            "se_observed": mean_se(comp, comp.n_items, k).se,
+            "sometimes": solve_shares(scores).sometimes,
+        }
+    )
+    return out
 
 
 def resampler(

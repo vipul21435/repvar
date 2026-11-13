@@ -179,6 +179,36 @@ class Scores:
         counts = self.counts
         return bool(np.all(counts == counts[0]))
 
+    def first_runs(self, k: int) -> Scores:
+        """Balanced subset: the first ``k`` scores, in input order, of each item.
+
+        Items with fewer than ``k`` scores are dropped.
+        """
+        if k < 1:
+            raise ValueError("k must be at least 1")
+        counts = self.counts
+        order = np.argsort(self.item_index, kind="stable")
+        rank = np.empty(self.n_obs, dtype=np.int64)
+        rank[order] = np.arange(self.n_obs) - np.repeat(np.cumsum(counts) - counts, counts)
+        keep = (rank < k) & (counts[self.item_index] >= k)
+        kept_items = np.flatnonzero(counts >= k)
+        if kept_items.size == 0:
+            raise ValueError(f"no item has {k} or more runs")
+        remap = np.full(self.n_items, -1, dtype=np.int64)
+        remap[kept_items] = np.arange(kept_items.size)
+        labels: tuple[str, ...] = ()
+        if self.has_run_labels:
+            flags = keep.tolist()
+            labels = tuple(lab for lab, ok in zip(self.run_labels, flags, strict=True) if ok)
+        return Scores(
+            item_ids=tuple(self.item_ids[i] for i in kept_items.tolist()),
+            item_index=remap[self.item_index[keep]],
+            run_labels=labels,
+            values=self.values[keep],
+            system=self.system,
+            has_run_labels=self.has_run_labels,
+        )
+
     def per_item(self) -> list[np.ndarray]:
         """Scores of each item, in ``item_ids`` order."""
         order = np.argsort(self.item_index, kind="stable")

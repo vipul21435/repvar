@@ -36,6 +36,13 @@ def _add_input(parser: argparse.ArgumentParser) -> None:
         help="nested: runs independent within items; crossed: run j is one pass over all "
         "items; auto: crossed when run labels are shared by items (default)",
     )
+    parser.add_argument(
+        "--first-runs",
+        type=int,
+        default=None,
+        metavar="K",
+        help="balance the design: keep the first K scores of every item that has K or more",
+    )
     _add_output(parser)
 
 
@@ -45,7 +52,7 @@ def _add_output(parser: argparse.ArgumentParser) -> None:
 
 
 def _load(args: argparse.Namespace) -> dict[str, Scores]:
-    return read_long(
+    groups = read_long(
         args.file,
         item=args.item_col,
         run=args.run_col,
@@ -53,6 +60,9 @@ def _load(args: argparse.Namespace) -> dict[str, Scores]:
         system=args.system_col,
         fmt=args.input_format,
     )
+    if args.first_runs is not None:
+        groups = {name: scores.first_runs(args.first_runs) for name, scores in groups.items()}
+    return groups
 
 
 def _emit(args: argparse.Namespace, text: str) -> None:

@@ -117,3 +117,22 @@ def test_read_errors(tmp_path):
         read_long(empty)
     with pytest.raises(ValueError, match="no observations"):
         Scores.from_records([])
+
+
+def test_first_runs_gives_a_balanced_subset():
+    scores = Scores.from_records(
+        [("a", "r1", 1), ("b", "r1", 0), ("a", "r2", 0), ("c", "r1", 1), ("a", "r3", 1)]
+        + [("c", "r2", 0), ("c", "r3", 0), ("c", "r4", 1)]
+    )
+    two = scores.first_runs(2)
+    assert two.item_ids == ("a", "c")
+    assert two.balanced and two.counts.tolist() == [2, 2]
+    assert [x.tolist() for x in two.per_item()] == [[1.0, 0.0], [1.0, 0.0]]
+    assert two.run_labels == ("r1", "r2", "r1", "r2")
+    assert scores.first_runs(1).n_items == 3
+    unlabelled = Scores.from_lists([[1, 0, 1], [0, 1]]).first_runs(2)
+    assert unlabelled.run_labels == () and unlabelled.n_obs == 4
+    with pytest.raises(ValueError, match="or more runs"):
+        scores.first_runs(5)
+    with pytest.raises(ValueError):
+        scores.first_runs(0)

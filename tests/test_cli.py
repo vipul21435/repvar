@@ -224,3 +224,23 @@ def test_simulate_coverage(capsys):
     assert all(0.0 <= rate <= 1.0 for rate in rates.values())
     code, _, err = run_cli(capsys, *args, "--kind", "normal")
     assert code == 2 and "0/1" in err
+
+
+def test_first_runs_option_balances_the_design(tmp_path, capsys):
+    path = tmp_path / "uneven.csv"
+    path.write_text("item,score\na,1\na,0\na,1\nb,0\nb,0\nc,1\nc,1\nc,0\nd,1\n")
+    code, out, _ = run_cli(capsys, "components", path, "--first-runs", "2", "--format", "json")
+    assert code == 0
+    payload = json.loads(out)["all"]
+    assert payload["balanced"] and payload["n_items"] == 3 and payload["n_obs"] == 6
+    assert payload["icc"]["method"] == "F, exact under normality"
+    code, _, err = run_cli(capsys, "components", path, "--first-runs", "9")
+    assert code == 2 and "or more runs" in err
+
+
+def test_tiny_p_values_are_printed_as_a_bound():
+    from repvar.report import p_text
+
+    assert p_text(0.0) == "p < 1e-300"
+    assert p_text(0.01234) == "p 0.0123"
+    assert p_text(float("nan")) == "p n/a"
