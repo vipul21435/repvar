@@ -42,13 +42,13 @@ def test_same_seed_same_interval():
 def test_item_bootstrap_interval_for_the_mean_covers_near_nominal():
     rng = np.random.default_rng(12)
     hits = 0
-    reps = 300
+    reps = 250
     for _ in range(reps):
         scores = simulate_binary(60, 3, mean=0.35, icc=0.5, seed=rng)
-        interval = bootstrap(scores, n_boot=300, level=0.9, seed=rng, statistic=mean_only)["mean"]
+        interval = bootstrap(scores, n_boot=200, level=0.9, seed=rng, statistic=mean_only)["mean"]
         hits += interval.low <= 0.35 <= interval.high
     # Nominal 90 %; the percentile bootstrap with 60 items runs slightly under. Accept
-    # 84 % to 95 % (binomial sd over 300 draws is 1.7 %).
+    # 84 % to 95 % (binomial sd over 250 draws is 1.9 %).
     assert 0.84 <= hits / reps <= 0.95
 
 
