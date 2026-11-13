@@ -146,7 +146,7 @@ def fit_betabinomial(successes: object, trials: object) -> BetaBinomialFit:
         return -betabinom_loglik(yy, kk, mu * size, (1.0 - mu) * size, ww)
 
     start_mu = float(logit(min(max(pooled, 1e-4), 1.0 - 1e-4)))
-    best = None
+    best_x, best_fun = None, math.inf
     for start_rho in (_moment_rho(y, k), 0.1, 0.6):
         result = minimize(
             negloglik,
@@ -154,15 +154,22 @@ def fit_betabinomial(successes: object, trials: object) -> BetaBinomialFit:
             method="L-BFGS-B",
             bounds=[(-_BOUND, _BOUND), (-_BOUND, _BOUND)],
         )
-        if best is None or result.fun < best.fun:
-            best = result
-    mu, rho = float(expit(best.x[0])), float(expit(best.x[1]))
+        if result.fun < best_fun:
+            best_x, best_fun = np.asarray(result.x, dtype=float), float(result.fun)
+    # The likelihood can keep rising towards rho = 0 or rho = 1 with a gradient too small
+    # for the optimiser to follow; take the edge whenever it is at least as good.
+    for edge in (-_BOUND, _BOUND):
+        candidate = np.array([best_x[0], edge])
+        value = negloglik(candidate)
+        if value <= best_fun + 1e-9:
+            best_x, best_fun = candidate, value
+    mu, rho = float(expit(best_x[0])), float(expit(best_x[1]))
     size = (1.0 - rho) / rho
-    loglik = -float(best.fun)
+    loglik = -best_fun
     boundary = None
-    if best.x[1] <= -_BOUND + 1e-3 or loglik <= ll_binomial + 1e-9:
+    if best_x[1] <= -_BOUND + 1e-3 or loglik <= ll_binomial + 1e-9:
         boundary = "rho at its lower bound: no spread beyond binomial"
-    elif best.x[1] >= _BOUND - 1e-3:
+    elif best_x[1] >= _BOUND - 1e-3:
         boundary = "rho at its upper bound: items are all-or-nothing"
     lr_stat = max(0.0, 2.0 * (loglik - ll_binomial))
     return BetaBinomialFit(
